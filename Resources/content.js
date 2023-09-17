@@ -1,10 +1,10 @@
-browser.runtime.sendMessage({ greeting: "hello" }).then((response) => {
-    console.log("Received response: ", response);
-});
+// browser.runtime.sendMessage({ greeting: "hello" }).then((response) => {
+//    console.log("Received response: ", response);
+// });
 
-browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    console.log("Received request: ", request);
-});
+// browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
+//    console.log("Received request: ", request);
+// });
 
 /**
  * Function to check and toggle the autoplay button on a YouTube video page.
@@ -43,38 +43,21 @@ function openQualityMenu() {
     qualityMenuItem.click();
 
     // const validQualityText = ['2160p60 4K', '2160p 4K', '1440p60 HD', '1440p HD', '1080p60 HD', '1080p HD', '720p60', '720p', '480p', '360p', '240p', '144p', 'Auto'];
-    const validQualityText = ['2160p', '1440p', '1080p', '720p', '480p', '360p', '240p', '144p', 'Auto'];
+    const validQualityText = ['2160', '1440', '1080', '720p', '480p', '360p', '240p', '144p', 'Auto'];
     const qualityOptions = document.querySelectorAll('.ytp-menuitem-label');
     if (qualityOptions.length === 0) {
         console.log("No quality options found");
         return;
     }
-// LEGACY CODE
-// var bestQualityOption = 0;
-// var bestQualityElement;
-
-// for (let i = 0; i < qualityOptions.length; i++) {
-//     // const itemText = qualityOptions[i].innerText.trim();
-//     // itemText is the first 5 characters of the string
-//     // if it is not NaN, then it is a valid quality option
-//     const itemText = qualityOptions[i].innerText.substring(0, 5);
-//     if (validQualityText.includes(itemText)) {
-//         const itemValue = parseInt(itemText);
-//         if (itemValue > bestQualityOption) {
-//             bestQualityOption = itemValue;
-//             bestQualityElement = qualityOptions[i];
-//         }
-//     }
-// }
 
 let bestQualityOption = 0;
 let bestQualityElement;
 
-const validQualityTextSet = new Set(validQualityText);
-
 for (const option of qualityOptions) {
-    const itemText = option.innerText.substring(0, 5);
-    if (validQualityTextSet.has(itemText)) {
+    // itemText is the first 4 characters of the string
+    const itemText = option.innerText.substring(0, 4);
+    // console.log(itemText);
+    if (validQualityText.includes(itemText)) {
         const itemValue = parseInt(itemText);
         if (itemValue > bestQualityOption) {
         bestQualityOption = itemValue;
@@ -94,12 +77,6 @@ for (const option of qualityOptions) {
 
 
 const checkAutoplayButton = () => {
-    // Check if the URL contains 'youtube.com/watch'
-    if (!window.location.href.includes('youtube.com/watch')) {
-        console.log("Not a video page, skipping autoplay check...");
-        return true;
-    }
-
     console.log("Checking for autoplay button...");
 
     let autoplayButton = document.querySelector('button.ytp-button[data-tooltip-target-id="ytp-autonav-toggle-button"]');
@@ -130,11 +107,7 @@ const checkAutoplayButton = () => {
  * The interval is cleared once the autoplay is turned off or the maximum number of attempts is reached.
  */
 const handleNavigateFinish = () => {
-    if (!window.location.href.includes('youtube.com/watch')) {
-        console.log("No need to run any scripts here :)");
-        return;
-    }
-    
+    // Check for autoplay button when YouTube navigation finishes
     let checkAttempts = 0;
 
     const checkInterval = setInterval(() => {
@@ -152,6 +125,11 @@ const handleNavigateFinish = () => {
     }, 500); // Check every 500ms
 };
 
-// Check for autoplay button when YouTube navigation finishes
-window.addEventListener('yt-navigate-finish', handleNavigateFinish);
-console.log("hello!");
+if (!window.location.href.includes('youtube.com/watch')) {
+    console.log("No need to run any scripts here :)");
+}
+
+else {
+    window.addEventListener('yt-navigate-finish', handleNavigateFinish);
+    console.log("Listening for yt-navigate-finish.");
+}
