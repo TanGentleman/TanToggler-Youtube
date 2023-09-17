@@ -120,7 +120,7 @@ const checkAutoplayButton = () => {
         return true;
     }
 
-    console.log("autoplayButton loaded, but not on or off!")
+    console.log("autoplayButton loaded, but not on or off!");
     return false;
 };
 
@@ -130,6 +130,11 @@ const checkAutoplayButton = () => {
  * The interval is cleared once the autoplay is turned off or the maximum number of attempts is reached.
  */
 const handleNavigateFinish = () => {
+    if (!window.location.href.includes('youtube.com/watch')) {
+        console.log("No need to run any scripts here :)");
+        return;
+    }
+    
     let checkAttempts = 0;
 
     const checkInterval = setInterval(() => {
