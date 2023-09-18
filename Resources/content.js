@@ -22,12 +22,42 @@ const findElementByInnerText = (menuItems, text) => {
 };
 
 /**
+ * Function to find the best quality button.
+ * This implementation is robust to unsortedness of qualityOptions.
+ * @param {string[]} validQualityText
+ * @param {NodeList} qualityOptions 
+ * @returns {Element|null} - The matching element if found, or null if not found.
+ */
+const getBestButton = (validQualityText, qualityOptions) => {
+    let bestQualityOption = 0;
+    let bestQualityElement;
+    for (const option of qualityOptions) {
+        // itemText is the first 4 characters of the string
+        const itemText = option.innerText.substring(0, 4);
+        // console.log(itemText);
+        if (validQualityText.includes(itemText)) {
+            // set the first option
+            const itemValue = parseInt(itemText);
+            if (itemValue > bestQualityOption) {
+            bestQualityOption = itemValue;
+            bestQualityElement = option;
+            }
+        }
+    }
+    if (bestQualityElement) {
+        return bestQualityElement;
+    }
+    else {
+        return null;
+    }
+};
+
+/**
  * Function to find and set the quality button.
  * Currently chooses highest quality option.
  * @returns {boolean} - Returns true if quality successfully set
  */
 const setQuality = () => {
-    console.log("Opening quality menu");
     const button = document.querySelector('.ytp-settings-button');
     if (!button) {
         console.log("Button element not found");
@@ -43,37 +73,43 @@ const setQuality = () => {
     }
     qualityMenuItem.click();
 
-    // const validQualityText = ['2160p60 4K', '2160p 4K', '1440p60 HD', '1440p HD', '1080p60 HD', '1080p HD', '720p60', '720p', '480p', '360p', '240p', '144p', 'Auto'];
     const validQualityText = ['2160', '1440', '1080', '720p', '480p', '360p', '240p', '144p', 'Auto'];
     const qualityOptions = document.querySelectorAll('.ytp-menuitem-label');
     if (qualityOptions.length === 0) {
         console.log("No quality options found");
         return false;
     }
-
-    let bestQualityOption = 0;
-    let bestQualityElement;
-
+    let firstValidElem;
+    let foundFirstElem = false;
+    // get first valid option
     for (const option of qualityOptions) {
         // itemText is the first 4 characters of the string
         const itemText = option.innerText.substring(0, 4);
         // console.log(itemText);
         if (validQualityText.includes(itemText)) {
-            const itemValue = parseInt(itemText);
-            if (itemValue > bestQualityOption) {
-            bestQualityOption = itemValue;
-            bestQualityElement = option;
+            if (!foundFirstElem) {
+                firstValidElem = option;
+                foundFirstElem = true;
+                break;
             }
         }
     }
-
-    if (bestQualityElement) {
-        bestQualityElement.click();
-        console.log("Highest quality option selected");
+    // Legacy robust implementation
+    // const bestElem = getBestButton(validQualityText, qualityOptions);
+    // if (firstValidElem === bestElem) {
+    //     console.log('Nodes are equal!');
+    // } 
+    // else {
+    //     console.log('OOP APPARENTLY YT QUALITY SORTING IS WACK');
+    //     return false;
+    // }
+    if (firstValidElem) {
+        console.log(`selected ${firstValidElem.innerText}`);
+        firstValidElem.click();
         return true;
     }
     else {
-        console.log("No valid quality options found, possibly too fast");
+        console.log("Valid quality option not selected.");
         return false;
     }
 };
@@ -85,7 +121,7 @@ const setQuality = () => {
  * @returns {boolean} - Returns true if autoplay successfully turned off
  */
 const setAutoplay = () => {
-    console.log("Checking for autoplay button...");
+    // console.log("Checking for autoplay button...");
     let autoplayButton = document.querySelector('button.ytp-button[data-tooltip-target-id="ytp-autonav-toggle-button"]');
     if (!autoplayButton) return false;
     const autoplayStatus = autoplayButton.getAttribute('aria-label');
@@ -104,37 +140,47 @@ const setAutoplay = () => {
     return false;
 };
 
-
+/**
+ * Function to run another function periodically until it succeeds or the maximum number of attempts is reached.
+ * @param {function} func - The function to run periodically.
+ * @param {number} attempts - The maximum number of attempts to run the function.
+ * @param {number} interval - The interval in milliseconds between each attempt.
+ * @returns {Promise} - Returns a promise that resolves when the function succeeds or the maximum number of attempts is reached.
+ */
+const runFuncPeriodically = async (func, attempts, interval) => {
+    return new Promise((resolve) => {
+      let checkAttempts = 0;
+      const intervalId = setInterval(() => {
+        checkAttempts++;
+        if (checkAttempts > 1) console.log(`Attempt ${checkAttempts} to run function`);
+        const result = func();
+        if (checkAttempts >= attempts) {
+          console.log("runFuncPeriodically max attempts reached");
+          clearInterval(intervalId);
+          resolve();
+        }
+        if (result) {
+        //   console.log("runFuncPeriodically success");
+          clearInterval(intervalId);
+          resolve();
+        }
+      }, interval);
+    });
+  };
 
 /**
  * Handle 'yt-navigate-finish' event by starting an interval to check success condition
  * The function attempts to set quality and turn off autoplay.
  * The interval is cleared once this succeeds or the maximum number of attempts is reached.
  */
-const handleNavigateFinish = () => {
+const handleNavigateFinish = async () => {
     // Check for autoplay button when YouTube navigation finishes
     if (!window.location.href.includes('youtube.com/watch')) {
         console.log("No need to run any scripts here :)");
         return;
     }
-    let checkAttempts = 0;
-
-    const checkInterval = setInterval(() => {
-        checkAttempts++;
-
-        console.log(`Attempt ${checkAttempts} to find autoplay button...`);
-
-        const setQualityResult = setQuality();
-        if (!setQualityResult) {
-            console.log("setQualityResult was false, returning");
-            return;
-        }
-        const setAutoplayResult = setAutoplay();
-        // If the autoplay was turned off, or the maximum number of attempts was reached, clear the interval
-        if (setAutoplayResult || checkAttempts >= 10) {
-            clearInterval(checkInterval);
-        }
-    }, 500); // Check every 500ms
+    await runFuncPeriodically(setQuality, 10, 500);
+    await runFuncPeriodically(setAutoplay, 10, 500);
 };
 
 window.addEventListener('yt-navigate-finish', handleNavigateFinish);
