@@ -6,6 +6,24 @@
 //   console.log("Received request: ", request);
 //});
 
+
+const config = {
+    validQualityStrings: ['2160', '1440', '1080', '720p', '480p', '360p', '240p', '144p', 'Auto'],
+    ROBUST: false,
+    //QUALITY_OPTIONS: ['Auto', 'Highest', 'Custom'],
+    QUALITY_CHOICE: 'Custom',
+    // CUSTOM CHOICE MUST BE 4 CHARS. I dont like doing .substring(0, 4)
+    QUALITY_CUSTOM: '1080',
+  };
+const checkConfigValidity = (config) => {
+    // Validate QUALITY_CUSTOM against validQualityStrings
+    if (!config.validQualityStrings.includes(config.QUALITY_CUSTOM)) {
+        throw new Error(`QUALITY_CUSTOM '${config.QUALITY_CUSTOM}' is not a valid quality choice.`);
+    }
+    if (config) return true;
+};
+
+
 /**
  * Function to find an element within a NodeList by its inner text.
  * @param {NodeList} menuItems - The list of elements to search within.
@@ -22,30 +40,67 @@ const findElementByInnerText = (menuItems, text) => {
 };
 
 /**
- * Function to find the best quality button.
- * This implementation is robust to unsortedness of qualityOptions.
- * @param {string[]} validQualityText
- * @param {NodeList} qualityOptions 
+ * Function to find the quality button.
+ * Relies on the config object to determine which quality to choose.
+ * @param {string[]} validQualityStrings
+ * @param {NodeList} qualityElemArray 
  * @returns {Element|null} - The matching element if found, or null if not found.
  */
-const getBestButton = (validQualityText, qualityOptions) => {
-    let bestQualityOption = 0;
-    let bestQualityElement;
-    for (const option of qualityOptions) {
-        // itemText is the first 4 characters of the string
-        const itemText = option.innerText.substring(0, 4);
-        // console.log(itemText);
-        if (validQualityText.includes(itemText)) {
-            // set the first option
-            const itemValue = parseInt(itemText);
-            if (itemValue > bestQualityOption) {
-            bestQualityOption = itemValue;
-            bestQualityElement = option;
+const getQualityButton = (validQualityStrings, qualityElemArray) => {
+    if (config.QUALITY_CHOICE === 'Auto') {
+        console.log("Do not enter this function when config.QUALITY_CHOICE is set to Auto. ERROR!")
+        return;
+    }
+    let customString;
+    let fallbackCustom = false;
+
+    let qualityElem;
+    if (config.QUALITY_CHOICE === 'Custom') {
+        fallbackCustom = true;
+        if (validQualityStrings.includes(config.QUALITY_CUSTOM)) {
+            customString = config.QUALITY_CUSTOM;
+        }
+        else {
+            console.log("Bad custom quality choice. Using highest quality instead.");
+        }
+    }
+    // Search for highest or custom quality with no assumptions about order
+    if ((config.QUALITY_CHOICE === 'Highest') || fallbackCustom === true) {
+        if (config.ROBUST || customString) {
+            let highestQualityInt = 0;
+            for (const option of qualityElemArray) {
+                // itemText is the first 4 characters of the string
+                const itemText = option.innerText.substring(0, 4);
+                // console.log(itemText);
+                if (customString && (itemText === customString)) {
+                    qualityElem = option;
+                    break;
+                }
+                if (validQualityStrings.includes(itemText)) {
+                    // set the first option
+                    const itemValue = parseInt(itemText);
+                    if (itemValue > highestQualityInt) {
+                        highestQualityInt = itemValue;
+                        qualityElem = option;
+                    }
+                }
+            }
+        }
+        else {
+            // get first valid option - should be the highest quality
+            for (const option of qualityElemArray) {
+                // itemText is the first 4 characters of the string
+                const itemText = option.innerText.substring(0, 4);
+                // console.log(itemText);
+                if (validQualityStrings.includes(itemText)) {
+                    qualityElem = option;
+                    break;
+                }
             }
         }
     }
-    if (bestQualityElement) {
-        return bestQualityElement;
+    if (qualityElem) {
+        return qualityElem;
     }
     else {
         return null;
@@ -73,39 +128,15 @@ const setQuality = () => {
     }
     qualityMenuItem.click();
 
-    const validQualityText = ['2160', '1440', '1080', '720p', '480p', '360p', '240p', '144p', 'Auto'];
-    const qualityOptions = document.querySelectorAll('.ytp-menuitem-label');
-    if (qualityOptions.length === 0) {
+    const qualityElemArray = document.querySelectorAll('.ytp-menuitem-label');
+    if (qualityElemArray.length === 0) {
         console.log("No quality options found");
         return false;
     }
-    let firstValidElem;
-    let foundFirstElem = false;
-    // get first valid option
-    for (const option of qualityOptions) {
-        // itemText is the first 4 characters of the string
-        const itemText = option.innerText.substring(0, 4);
-        // console.log(itemText);
-        if (validQualityText.includes(itemText)) {
-            if (!foundFirstElem) {
-                firstValidElem = option;
-                foundFirstElem = true;
-                break;
-            }
-        }
-    }
-    // Legacy robust implementation
-    // const bestElem = getBestButton(validQualityText, qualityOptions);
-    // if (firstValidElem === bestElem) {
-    //     console.log('Nodes are equal!');
-    // } 
-    // else {
-    //     console.log('OOP APPARENTLY YT QUALITY SORTING IS WACK');
-    //     return false;
-    // }
-    if (firstValidElem) {
-        console.log(`selected ${firstValidElem.innerText}`);
-        firstValidElem.click();
+    const qualityButton = getQualityButton(config.validQualityStrings, qualityElemArray);
+    if (qualityButton) {
+        console.log(`selected ${qualityButton.innerText}`);
+        qualityButton.click();
         return true;
     }
     else {
@@ -147,26 +178,25 @@ const setAutoplay = () => {
  * @param {number} interval - The interval in milliseconds between each attempt.
  * @returns {Promise} - Returns a promise that resolves when the function succeeds or the maximum number of attempts is reached.
  */
-const runFuncPeriodically = async (func, attempts, interval) => {
-    return new Promise((resolve) => {
-      let checkAttempts = 0;
-      const intervalId = setInterval(() => {
-        checkAttempts++;
-        if (checkAttempts > 1) console.log(`Attempt ${checkAttempts} to run function`);
-        const result = func();
-        if (checkAttempts >= attempts) {
-          console.log("runFuncPeriodically max attempts reached");
-          clearInterval(intervalId);
-          resolve();
-        }
-        if (result) {
-        //   console.log("runFuncPeriodically success");
-          clearInterval(intervalId);
-          resolve();
-        }
-      }, interval);
-    });
-  };
+const runFuncPeriodically = (func, attempts, interval) => {
+    let checkAttempts = 0;
+    const intervalId = setInterval(() => {
+      checkAttempts++;
+      if (checkAttempts > 1) console.log(`Attempt ${checkAttempts} to run function`);
+      const result = func();
+      if (checkAttempts >= attempts) {
+        console.log("runFuncPeriodically max attempts reached");
+        clearInterval(intervalId);
+        return;
+      }
+      if (result) {
+        // console.log("runFuncPeriodically success");
+        clearInterval(intervalId);
+        return;
+      }
+    }, interval);
+};  
+
 
 /**
  * Handle 'yt-navigate-finish' event by starting an interval to check success condition
@@ -179,9 +209,15 @@ const handleNavigateFinish = async () => {
         console.log("No need to run any scripts here :)");
         return;
     }
-    await runFuncPeriodically(setQuality, 10, 500);
-    await runFuncPeriodically(setAutoplay, 10, 500);
+    else {
+        if (config.QUALITY_CHOICE !== 'Auto') {
+            await runFuncPeriodically(setQuality, 5, 500);
+            // 500ms timeout
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        await runFuncPeriodically(setAutoplay, 5, 500);
+    }
 };
 
 window.addEventListener('yt-navigate-finish', handleNavigateFinish);
-console.log("Listening for yt-navigate-finish.");
+console.log("Now listening for yt-navigate-finish.");
