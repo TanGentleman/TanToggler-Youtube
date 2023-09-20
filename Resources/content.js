@@ -7,22 +7,39 @@
 //});
 
 
+// Later may evolve to a config.js type beat, we'll see
 const config = {
     validQualityStrings: ['2160', '1440', '1080', '720p', '480p', '360p', '240p', '144p', 'Auto'],
+    QUALITY_OPTIONS: ['Auto', 'Highest', 'Custom'],
+
     ROBUST: false,
-    //QUALITY_OPTIONS: ['Auto', 'Highest', 'Custom'],
-    QUALITY_CHOICE: 'Custom',
+    QUALITY_CHOICE: 'Highest',
     // CUSTOM CHOICE MUST BE 4 CHARS. I dont like doing .substring(0, 4)
     QUALITY_CUSTOM: '1080',
-  };
-const checkConfigValidity = (config) => {
-    // Validate QUALITY_CUSTOM against validQualityStrings
-    if (!config.validQualityStrings.includes(config.QUALITY_CUSTOM)) {
-        throw new Error(`QUALITY_CUSTOM '${config.QUALITY_CUSTOM}' is not a valid quality choice.`);
+    checkValidity: function() {
+        // Validate QUALITY_CUSTOM against validQualityStrings
+        if (!this.validQualityStrings.includes(this.QUALITY_CUSTOM)) {
+            console.log(`QUALITY_CUSTOM '${this.QUALITY_CUSTOM}' is not in validQualityStrings.`);
+            if (this.QUALITY_CUSTOM.length !== 4) {
+                console.log("QUALITY_CUSTOM must be 4 characters long u goof.");
+            }
+            return false;
+        }
+        // Validate QUALITY_CHOICE against QUALITY_OPTIONS
+        if (!this.QUALITY_OPTIONS.includes(this.QUALITY_CHOICE)) {
+            console.log(`QUALITY_CHOICE '${this.QUALITY_CHOICE}' is not in QUALITY_OPTIONS.`);
+            return false;
+        }
+        return true;
     }
-    if (config) return true;
 };
 
+// *** CHECK CONFIGURATION ***
+// Check config validity
+if (!config.checkValidity()) {
+    throw new Error("Config is invalid. Check log.");
+}
+// *** CONFIGURATION PASSED ***
 
 /**
  * Function to find an element within a NodeList by its inner text.
