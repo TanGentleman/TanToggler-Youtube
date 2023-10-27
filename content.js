@@ -1,13 +1,3 @@
-//browser.runtime.sendMessage({ greeting: "hello" }).then((response) => {
-//   console.log("Received response: ", response);
-//});
-//
-//browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
-//   console.log("Received request: ", request);
-//});
-
-
-// Later may evolve to a config.js type beat, we'll see
 const config = {
     validQualityStrings: ['2160', '1440', '1080', '720p', '480p', '360p', '240p', '144p', 'Auto'],
     QUALITY_OPTIONS: ['Auto', 'Highest', 'Custom'],
